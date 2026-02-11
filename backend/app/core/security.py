@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from app.core.config import settings
 import secrets
 import random
+import hashlib
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -14,37 +15,27 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against a hash"""
-    # Truncate password to bcrypt's 72-byte limit before verification
-    safe_password = password_to_bcrypt_safe(plain_password)
-    return pwd_context.verify(safe_password, hashed_password)
-
 def get_password_hash(password: str) -> str:
     """
-    Hash a password with bcrypt
+    Hash a password with bcrypt using SHA256 pre-hashing
     
-    Note: bcrypt has a hard limit of 72 bytes. Passwords longer than this
-    will be truncated to prevent crashes.
+    Pre-hashing with SHA256 eliminates bcrypt's 72-byte limit while
+    maintaining security. The SHA256 hash is always 64 hex characters,
+    well within bcrypt's limit.
     """
-    # Truncate password to bcrypt's 72-byte limit
-    safe_password = password_to_bcrypt_safe(password)
-    return pwd_context.hash(safe_password)
+    # Pre-hash with SHA256 to avoid bcrypt 72-byte limit
+    sha = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return pwd_context.hash(sha)
 
-def password_to_bcrypt_safe(password: str) -> str:
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Truncate password to bcrypt's 72-byte limit
+    Verify a password against a hash
     
-    bcrypt has a hard technical limit of 72 bytes. This function ensures
-    passwords don't exceed this limit to prevent ValueError crashes.
+    Uses SHA256 pre-hashing to match the hashing process.
     """
-    # Encode to bytes, truncate to 72 bytes, decode back to string
-    password_bytes = password.encode("utf-8")
-    if len(password_bytes) > 72:
-        # Truncate to 72 bytes and decode, ignoring any incomplete characters
-        safe_password = password_bytes[:72].decode("utf-8", errors="ignore")
-        return safe_password
-    return password
+    # Pre-hash with SHA256 to match the hashing process
+    sha = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+    return pwd_context.verify(sha, hashed_password)
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token"""

@@ -8,7 +8,7 @@ class UserSignup(BaseModel):
     """User signup request"""
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=72)  # bcrypt limit
     name: str = Field(..., min_length=1, max_length=100)
     
     @validator('username')
@@ -19,6 +19,9 @@ class UserSignup(BaseModel):
     
     @validator('password')
     def password_strength(cls, v):
+        # Check byte length for bcrypt compatibility
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password is too long (max 72 bytes)')
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
         if not re.search(r'[a-z]', v):
@@ -77,7 +80,7 @@ class PasswordResetConfirm(BaseModel):
     """Password reset confirmation with code"""
     email: EmailStr
     code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$')
-    new_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8, max_length=72)  # bcrypt limit
     
     @validator('code')
     def code_must_be_numeric(cls, v):
@@ -87,6 +90,9 @@ class PasswordResetConfirm(BaseModel):
     
     @validator('new_password')
     def password_strength(cls, v):
+        # Check byte length for bcrypt compatibility
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password is too long (max 72 bytes)')
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
         if not re.search(r'[a-z]', v):
@@ -98,10 +104,13 @@ class PasswordResetConfirm(BaseModel):
 class PasswordChange(BaseModel):
     """Change password request"""
     current_password: str
-    new_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8, max_length=72)  # bcrypt limit
     
     @validator('new_password')
     def password_strength(cls, v):
+        # Check byte length for bcrypt compatibility
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Password is too long (max 72 bytes)')
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
         if not re.search(r'[a-z]', v):

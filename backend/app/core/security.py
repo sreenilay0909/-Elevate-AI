@@ -16,11 +16,35 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to bcrypt's 72-byte limit before verification
+    safe_password = password_to_bcrypt_safe(plain_password)
+    return pwd_context.verify(safe_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+    """
+    Hash a password with bcrypt
+    
+    Note: bcrypt has a hard limit of 72 bytes. Passwords longer than this
+    will be truncated to prevent crashes.
+    """
+    # Truncate password to bcrypt's 72-byte limit
+    safe_password = password_to_bcrypt_safe(password)
+    return pwd_context.hash(safe_password)
+
+def password_to_bcrypt_safe(password: str) -> str:
+    """
+    Truncate password to bcrypt's 72-byte limit
+    
+    bcrypt has a hard technical limit of 72 bytes. This function ensures
+    passwords don't exceed this limit to prevent ValueError crashes.
+    """
+    # Encode to bytes, truncate to 72 bytes, decode back to string
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        # Truncate to 72 bytes and decode, ignoring any incomplete characters
+        safe_password = password_bytes[:72].decode("utf-8", errors="ignore")
+        return safe_password
+    return password
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token"""

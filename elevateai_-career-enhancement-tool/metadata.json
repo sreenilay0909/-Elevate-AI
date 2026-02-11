@@ -1,0 +1,6 @@
+
+{
+  "name": "ElevateAI: Career Enhancement Tool",
+  "description": "An intelligent system that aggregates user profiles from GitHub, LeetCode, and LinkedIn to generate actionable career insights, market trend analysis, and personalized learning roadmaps.",
+  "requestFramePermissions": []
+}
